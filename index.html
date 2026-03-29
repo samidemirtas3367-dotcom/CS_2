@@ -1,10 +1,11 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <title>CS2 Web - Tam Sürüm (Kontrol Fix & Menü)</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial', sans-serif; user-select: none; }
+        /* touch-action: none; mobil cihazlarda ekranı kaydırırken sayfanın yenilenmesini engeller */
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial', sans-serif; user-select: none; touch-action: none; -webkit-touch-callout: none; }
         
         /* UI Elemanları */
         #crosshair { position: fixed; top: 50%; left: 50%; width: 4px; height: 4px; background: lime; transform: translate(-50%, -50%); z-index: 5; pointer-events: none; }
@@ -43,11 +44,12 @@
 
         /* Mobil & Akıllı Tahta UI */
         #mobile-ui { display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; }
-        .mobile-btn { position: absolute; background: rgba(255,165,0,0.5); color: white; border: 2px solid orange; border-radius: 50%; width: 70px; height: 70px; font-weight: bold; pointer-events: auto; display: flex; justify-content: center; align-items: center; }
+        .mobile-btn { position: absolute; background: rgba(255,165,0,0.5); color: white; border: 2px solid orange; border-radius: 50%; width: 70px; height: 70px; font-weight: bold; pointer-events: auto; display: flex; justify-content: center; align-items: center; user-select: none; }
         #btn-fire-mob { bottom: 40px; right: 40px; width: 90px; height: 90px; font-size: 20px; }
         #btn-jump-mob { bottom: 140px; right: 60px; }
         #btn-scope-mob { bottom: 60px; right: 150px; }
-        #joystick-area { position: absolute; bottom: 40px; left: 40px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%; pointer-events: auto; border: 2px dashed #555; display: flex; justify-content: center; align-items: center; color: #777;}
+        #btn-reload-mob { bottom: 220px; right: 40px; width: 60px; height: 60px; font-size: 14px; }
+        #joystick-area { position: absolute; bottom: 40px; left: 40px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%; pointer-events: auto; border: 2px dashed #555; }
     </style>
 </head>
 <body>
@@ -70,10 +72,11 @@
     </div>
 
     <div id="mobile-ui">
-        <div id="joystick-area">Hareket Alanı</div>
+        <div id="joystick-area"></div>
         <div class="mobile-btn" id="btn-fire-mob">Ateş</div>
         <div class="mobile-btn" id="btn-jump-mob">Zıpla</div>
         <div class="mobile-btn" id="btn-scope-mob">Dürbün</div>
+        <div class="mobile-btn" id="btn-reload-mob">Şarjör</div>
     </div>
 
     <div id="crosshair">
@@ -273,9 +276,9 @@
             isGameStarted = true;
 
             if (controlType === 'pc') {
-                controls.lock(); // PC için fareyi kilitle
+                controls.lock();
             } else {
-                document.getElementById('mobile-ui').style.display = 'block'; // Mobil/Tahta için UI göster
+                document.getElementById('mobile-ui').style.display = 'block';
             }
         }
 
@@ -286,7 +289,7 @@
             }
         });
 
-        // Klavye Girdileri
+        // Klavye Girdileri (PC)
         document.addEventListener('keydown', e => {
             if(e.code === 'KeyW') move.f = true; if(e.code === 'KeyS') move.b = true;
             if(e.code === 'KeyA') move.l = true; if(e.code === 'KeyD') move.r = true;
@@ -298,6 +301,105 @@
         document.addEventListener('keyup', e => {
             if(e.code === 'KeyW') move.f = false; if(e.code === 'KeyS') move.b = false;
             if(e.code === 'KeyA') move.l = false; if(e.code === 'KeyD') move.r = false;
+        });
+
+        // --- MOBİL/AKILLI TAHTA JOYSTICK VE KAMERA KONTROLLERİ ---
+        const joyArea = document.getElementById('joystick-area');
+        joyArea.innerHTML = '<div id="joy-knob" style="width:50px;height:50px;background:orange;border-radius:50%;position:absolute;top:50%;left:50%;pointer-events:none;transform:translate(-50%,-50%);"></div>';
+        const joyKnob = document.getElementById('joy-knob');
+
+        let moveTouchId = null;
+        let joyStartX = 0, joyStartY = 0;
+        let joyValX = 0, joyValY = 0;
+
+        joyArea.addEventListener('touchstart', (e) => {
+            if(controlType === 'pc' || !isGameStarted) return;
+            e.preventDefault();
+            let t = e.changedTouches[0];
+            moveTouchId = t.identifier;
+            let rect = joyArea.getBoundingClientRect();
+            joyStartX = rect.left + rect.width / 2;
+            joyStartY = rect.top + rect.height / 2;
+            updateJoystick(t.clientX, t.clientY);
+        }, {passive: false});
+
+        joyArea.addEventListener('touchmove', (e) => {
+            if(controlType === 'pc' || !isGameStarted) return;
+            e.preventDefault();
+            for(let t of e.changedTouches) {
+                if(t.identifier === moveTouchId) updateJoystick(t.clientX, t.clientY);
+            }
+        }, {passive: false});
+
+        joyArea.addEventListener('touchend', (e) => {
+            if(controlType === 'pc' || !isGameStarted) return;
+            e.preventDefault();
+            for(let t of e.changedTouches) {
+                if(t.identifier === moveTouchId) {
+                    moveTouchId = null;
+                    joyValX = 0; joyValY = 0;
+                    joyKnob.style.transform = `translate(-50%, -50%)`;
+                }
+            }
+        });
+
+        function updateJoystick(x, y) {
+            let dx = x - joyStartX;
+            let dy = y - joyStartY;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            let maxDist = 50; 
+            
+            if(dist > maxDist) {
+                dx = (dx/dist) * maxDist;
+                dy = (dy/dist) * maxDist;
+            }
+            
+            joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            joyValX = dx / maxDist;
+            joyValY = dy / maxDist; 
+        }
+
+        // Dokunmatik Kamerayı Döndürme
+        let lookTouchId = null;
+        let prevTouchX = 0, prevTouchY = 0;
+
+        window.addEventListener('touchstart', (e) => {
+            if(controlType === 'pc' || !isGameStarted || isDead) return;
+            for(let t of e.changedTouches) {
+                // UI tuşlarına basıyorsa kamerayı döndürme
+                if(t.target.closest('.mobile-btn') || t.target.id === 'joystick-area' || t.target.id === 'joy-knob') continue;
+                
+                if(lookTouchId === null) {
+                    lookTouchId = t.identifier;
+                    prevTouchX = t.clientX;
+                    prevTouchY = t.clientY;
+                }
+            }
+        }, {passive: false});
+
+        window.addEventListener('touchmove', (e) => {
+            if(controlType === 'pc' || !isGameStarted || isDead) return;
+            for(let t of e.changedTouches) {
+                if(t.identifier === lookTouchId) {
+                    e.preventDefault();
+                    let dx = t.clientX - prevTouchX;
+                    let dy = t.clientY - prevTouchY;
+                    
+                    camera.rotation.order = 'YXZ';
+                    camera.rotation.y -= dx * 0.005; // Hassasiyeti buradan ayarlayabilirsin
+                    camera.rotation.x -= dy * 0.005;
+                    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x)); // Yere veya göğe bakmayı sınırlar
+                    
+                    prevTouchX = t.clientX;
+                    prevTouchY = t.clientY;
+                }
+            }
+        }, {passive: false});
+
+        window.addEventListener('touchend', (e) => {
+            for(let t of e.changedTouches) {
+                if(t.identifier === lookTouchId) lookTouchId = null;
+            }
         });
 
         function reload() {
@@ -317,7 +419,6 @@
         const raycaster = new THREE.Raycaster();
         
         function fire() {
-            // Sadece PC'de kilitliyken veya Mobil/Tahtadaysa ateş et
             if((controlType === 'pc' && !controls.isLocked) || isDead || !isGameStarted) return;
             
             let wp = weapons[currentWeapon];
@@ -370,7 +471,6 @@
 
         let autoFire;
         window.addEventListener('mousedown', e => { 
-            // PC kontrolleri fare dinleyicisi
             if(controlType === 'pc' && isGameStarted) {
                 if(e.button === 0) { fire(); if(weapons[currentWeapon].auto) autoFire = setInterval(fire, weapons[currentWeapon].fireRate); }
                 if(e.button === 2) toggleZoom();
@@ -383,6 +483,7 @@
         document.getElementById('btn-fire-mob').addEventListener('touchend', (e) => { e.preventDefault(); clearInterval(autoFire); });
         document.getElementById('btn-jump-mob').addEventListener('touchstart', (e) => { e.preventDefault(); if(canJump){ vel.y = 12; canJump = false;} });
         document.getElementById('btn-scope-mob').addEventListener('touchstart', (e) => { e.preventDefault(); toggleZoom(); });
+        document.getElementById('btn-reload-mob').addEventListener('touchstart', (e) => { e.preventDefault(); reload(); });
 
         function takeDamage(dmg) {
             if(isDead || !isGameStarted) return;
@@ -405,42 +506,41 @@
             let time = performance.now(); let delta = (time - prevTime) / 1000;
 
             if (isGameStarted && !isDead) {
-                // Hız sönümleme
                 vel.x -= vel.x * 10 * delta; vel.z -= vel.z * 10 * delta; vel.y -= 9.8 * 4 * delta;
                 
-                // Basılan tuşlara göre lokal yön hesabı
+                // PC Klavye Girdileri
                 dir.z = Number(move.f) - Number(move.b); 
                 dir.x = Number(move.r) - Number(move.l); 
                 dir.normalize(); 
                 
-                if (move.f || move.b) vel.z -= dir.z * 60 * delta;
-                if (move.l || move.r) vel.x -= dir.x * 60 * delta;
+                // Mobil Joystick ile Override Et
+                if(Math.abs(joyValY) > 0.01 || Math.abs(joyValX) > 0.01) {
+                    dir.z = -joyValY; 
+                    dir.x = joyValX;
+                }
 
-                let p = controls.getObject().position;
+                if (move.f || move.b || Math.abs(joyValY) > 0.01) vel.z -= dir.z * 60 * delta;
+                if (move.l || move.r || Math.abs(joyValX) > 0.01) vel.x -= dir.x * 60 * delta;
+
+                let p = camera.position;
                 
-                // ==========================================
-                // 🔥 CS2 HAREKET FİXİ: KAMERAYA GÖRE YÜRÜME 🔥
-                // ==========================================
-                // Hız vektörünü kameranın Y (sağ-sol) açısına göre döndürüyoruz.
+                // Kamera Yönüne Göre Hareket
                 const velocity = new THREE.Vector3(vel.x * delta, 0, vel.z * delta);
                 velocity.applyEuler(new THREE.Euler(0, camera.rotation.y, 0, 'YXZ'));
 
-                // Çarpışma ve pozisyon güncellemesi (Artık Global koordinatlarda kameraya göre gidiyor)
                 let nx = p.clone(); nx.x += velocity.x;
                 if(!checkCollision(nx)) p.x = nx.x; else vel.x = 0;
                 
                 let nz = p.clone(); nz.z += velocity.z;
                 if(!checkCollision(nz)) p.z = nz.z; else vel.z = 0;
 
-                // Zıplama ve yerçekimi
                 p.y += vel.y * delta;
                 if (p.y < 1.6) { vel.y = 0; p.y = 1.6; canJump = true; }
 
-                // Kamera Geri Tepme Efekti
                 if (shakeOffset > 0) {
-                    controls.getObject().position.y += shakeOffset;
+                    camera.position.y += shakeOffset;
                     shakeOffset -= delta * 0.5; 
-                    if(controls.getObject().position.y > 1.8) controls.getObject().position.y = 1.8;
+                    if(camera.position.y > 1.8) camera.position.y = 1.8;
                 }
 
                 gunGroup.position.lerp(gunPos, 0.1);

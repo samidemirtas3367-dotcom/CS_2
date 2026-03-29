@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>CS2 Web - Tam Sürüm (Kontrol Fix)</title>
+    <title>CS2 Web - Tam Sürüm (Kontrol Fix & Menü)</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial', sans-serif; user-select: none; }
         
@@ -22,7 +22,7 @@
         #killfeed { position: absolute; top: 20px; right: 20px; color: white; font-size: 18px; text-align: right; z-index: 5; font-weight: bold; text-shadow: 1px 1px 0 #000; }
         
         /* Radar (Minimap) */
-        #radar { position: absolute; top: 20px; left: 20px; width: 150px; height: 150px; background: rgba(0,0,0,0.6); border: 2px solid #555; border-radius: 50%; z-index: 5; overflow: hidden; }
+        #radar { position: absolute; top: 20px; left: 20px; width: 150px; height: 150px; background: rgba(0,0,0,0.6); border: 2px solid #555; border-radius: 50%; z-index: 5; overflow: hidden; display: none; }
         #radar-player { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: lime; transform: translate(-50%, -50%); border-radius: 50%; }
         .radar-bot { position: absolute; width: 4px; height: 4px; background: red; border-radius: 50%; transform: translate(-50%, -50%); transition: all 0.1s; }
 
@@ -34,16 +34,46 @@
         #blood { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,0,0,0.5); opacity: 0; z-index: 4; pointer-events: none; transition: opacity 0.1s; }
         #death-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(100,0,0,0.9); color: white; text-align: center; font-size: 60px; line-height: 100vh; z-index: 10; font-weight: bold; font-family: Impact, sans-serif; }
         
-        #instructions { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; }
-        .key { background: #333; padding: 5px 10px; border-radius: 5px; font-weight: bold; color: lime; }
+        /* MENÜ & AYARLAR */
+        #main-menu, #settings-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; }
+        .menu-title { color: orange; font-size: 50px; margin-bottom: 30px; font-family: Impact, sans-serif; letter-spacing: 2px; }
+        .menu-btn { background: #333; color: white; border: 2px solid orange; padding: 15px 40px; font-size: 20px; margin: 10px; cursor: pointer; border-radius: 5px; transition: 0.2s; font-weight: bold; }
+        .menu-btn:hover { background: orange; color: black; }
+        select { padding: 10px; font-size: 18px; background: #222; color: white; border: 1px solid orange; border-radius: 5px; }
+
+        /* Mobil & Akıllı Tahta UI */
+        #mobile-ui { display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15; }
+        .mobile-btn { position: absolute; background: rgba(255,165,0,0.5); color: white; border: 2px solid orange; border-radius: 50%; width: 70px; height: 70px; font-weight: bold; pointer-events: auto; display: flex; justify-content: center; align-items: center; }
+        #btn-fire-mob { bottom: 40px; right: 40px; width: 90px; height: 90px; font-size: 20px; }
+        #btn-jump-mob { bottom: 140px; right: 60px; }
+        #btn-scope-mob { bottom: 60px; right: 150px; }
+        #joystick-area { position: absolute; bottom: 40px; left: 40px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%; pointer-events: auto; border: 2px dashed #555; display: flex; justify-content: center; align-items: center; color: #777;}
     </style>
 </head>
 <body>
-    <div id="instructions">
-        <h1 style="color:orange;">CS2 WEB - KANLI ARENA</h1>
-        <p>Oyuna başlamak için ekrana tıkla.</p>
-        <p><span class="key">WASD</span> Yürü | <span class="key">Space</span> Zıpla | <span class="key">Sol Tık</span> Ateş | <span class="key">Sağ Tık</span> Dürbün</p>
-        <p><span class="key">1</span> AK-47 | <span class="key">2</span> AWP | <span class="key">R</span> Şarjör Değiştir</p>
+    <div id="main-menu">
+        <h1 class="menu-title">CS2 WEB - KANLI ARENA</h1>
+        <button class="menu-btn" id="btn-play">OYUNA BAŞLA</button>
+        <button class="menu-btn" id="btn-settings">AYARLAR</button>
+    </div>
+
+    <div id="settings-menu" style="display: none;">
+        <h2 class="menu-title" style="color: lime;">AYARLAR</h2>
+        <p>Kontrol Yöntemi Seçin:</p>
+        <select id="control-select">
+            <option value="pc">Bilgisayar (Klavye & Fare)</option>
+            <option value="mobile">Mobil Kontrol (Sanal Tuşlar)</option>
+            <option value="board">Akıllı Tahta (Dokunmatik Yönlendirme)</option>
+        </select>
+        <br><br>
+        <button class="menu-btn" id="btn-back">KAYDET & GERİ</button>
+    </div>
+
+    <div id="mobile-ui">
+        <div id="joystick-area">Hareket Alanı</div>
+        <div class="mobile-btn" id="btn-fire-mob">Ateş</div>
+        <div class="mobile-btn" id="btn-jump-mob">Zıpla</div>
+        <div class="mobile-btn" id="btn-scope-mob">Dürbün</div>
     </div>
 
     <div id="crosshair">
@@ -57,8 +87,8 @@
 
     <div id="radar"><div id="radar-player"></div></div>
     
-    <div id="hud">✚ <span id="hp">100</span> | 🛡️ 100</div>
-    <div id="ammo-ui"><span id="weapon-name">AK-47</span><span id="ammo">30</span> / <span id="reserve">90</span></div>
+    <div id="hud" style="display:none;">✚ <span id="hp">100</span> | 🛡️ 100</div>
+    <div id="ammo-ui" style="display:none;"><span id="weapon-name">AK-47</span><span id="ammo">30</span> / <span id="reserve">90</span></div>
     
     <div id="killfeed"></div>
     <div id="blood"></div>
@@ -71,6 +101,21 @@
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
+
+        // --- MENÜ VE AYAR DEĞİŞKENLERİ ---
+        let controlType = 'pc'; // pc, mobile, board
+        let isGameStarted = false;
+        
+        document.getElementById('btn-play').addEventListener('click', () => startGame());
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('settings-menu').style.display = 'flex';
+        });
+        document.getElementById('btn-back').addEventListener('click', () => {
+            controlType = document.getElementById('control-select').value;
+            document.getElementById('settings-menu').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'flex';
+        });
 
         // --- SES MOTORU ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -213,14 +258,35 @@
         // --- KONTROLLER ---
         let playerHP = 100, isDead = false;
         const controls = new PointerLockControls(camera, document.body);
-        document.body.addEventListener('click', () => { if(!isDead) controls.lock(); });
-        controls.addEventListener('lock', () => document.getElementById('instructions').style.display = 'none');
-
+        
         const move = { f: false, b: false, l: false, r: false };
         const vel = new THREE.Vector3(), dir = new THREE.Vector3();
         let canJump = true, isShooting = false, lastShotTime = 0;
-        let shakeOffset = 0; // KAMERA FİX DEĞİŞKENİ
+        let shakeOffset = 0; 
 
+        // Oyunu Başlatma Fonksiyonu
+        function startGame() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            document.getElementById('ammo-ui').style.display = 'block';
+            document.getElementById('radar').style.display = 'block';
+            isGameStarted = true;
+
+            if (controlType === 'pc') {
+                controls.lock(); // PC için fareyi kilitle
+            } else {
+                document.getElementById('mobile-ui').style.display = 'block'; // Mobil/Tahta için UI göster
+            }
+        }
+
+        // PC Fare Kilidi Tıklama
+        document.body.addEventListener('click', (e) => { 
+            if(isGameStarted && !isDead && controlType === 'pc' && !controls.isLocked) {
+                controls.lock(); 
+            }
+        });
+
+        // Klavye Girdileri
         document.addEventListener('keydown', e => {
             if(e.code === 'KeyW') move.f = true; if(e.code === 'KeyS') move.b = true;
             if(e.code === 'KeyA') move.l = true; if(e.code === 'KeyD') move.r = true;
@@ -251,16 +317,18 @@
         const raycaster = new THREE.Raycaster();
         
         function fire() {
+            // Sadece PC'de kilitliyken veya Mobil/Tahtadaysa ateş et
+            if((controlType === 'pc' && !controls.isLocked) || isDead || !isGameStarted) return;
+            
             let wp = weapons[currentWeapon];
             let now = performance.now();
-            if(!controls.isLocked || isDead || wp.ammo <= 0 || now - lastShotTime < wp.fireRate) return;
+            if(wp.ammo <= 0 || now - lastShotTime < wp.fireRate) return;
             
             wp.ammo--; updateAmmoUI(); lastShotTime = now;
             playSound(currentWeapon);
             
             flash.intensity = 5; setTimeout(() => flash.intensity = 0, 50);
             
-            // KAMERA FİXİ: Rotasyonu bozmak yerine silahı teptirip ekrana shake veriyoruz
             gunGroup.position.z += 0.1; 
             shakeOffset = wp.recoil; 
             
@@ -302,13 +370,22 @@
 
         let autoFire;
         window.addEventListener('mousedown', e => { 
-            if(e.button === 0) { fire(); if(weapons[currentWeapon].auto) autoFire = setInterval(fire, weapons[currentWeapon].fireRate); }
-            if(e.button === 2) toggleZoom();
+            // PC kontrolleri fare dinleyicisi
+            if(controlType === 'pc' && isGameStarted) {
+                if(e.button === 0) { fire(); if(weapons[currentWeapon].auto) autoFire = setInterval(fire, weapons[currentWeapon].fireRate); }
+                if(e.button === 2) toggleZoom();
+            }
         });
         window.addEventListener('mouseup', e => { if(e.button === 0) clearInterval(autoFire); });
 
+        // Mobil Sanal Buton Eventleri
+        document.getElementById('btn-fire-mob').addEventListener('touchstart', (e) => { e.preventDefault(); fire(); if(weapons[currentWeapon].auto) autoFire = setInterval(fire, weapons[currentWeapon].fireRate); });
+        document.getElementById('btn-fire-mob').addEventListener('touchend', (e) => { e.preventDefault(); clearInterval(autoFire); });
+        document.getElementById('btn-jump-mob').addEventListener('touchstart', (e) => { e.preventDefault(); if(canJump){ vel.y = 12; canJump = false;} });
+        document.getElementById('btn-scope-mob').addEventListener('touchstart', (e) => { e.preventDefault(); toggleZoom(); });
+
         function takeDamage(dmg) {
-            if(isDead) return;
+            if(isDead || !isGameStarted) return;
             playerHP -= dmg; document.getElementById('hp').innerText = playerHP;
             document.getElementById('hp').style.color = playerHP <= 30 ? 'red' : 'lime';
             document.getElementById('blood').style.opacity = 1;
@@ -327,30 +404,42 @@
             requestAnimationFrame(animate);
             let time = performance.now(); let delta = (time - prevTime) / 1000;
 
-            if (controls.isLocked && !isDead) {
+            if (isGameStarted && !isDead) {
+                // Hız sönümleme
                 vel.x -= vel.x * 10 * delta; vel.z -= vel.z * 10 * delta; vel.y -= 9.8 * 4 * delta;
-                dir.z = Number(move.f) - Number(move.b); dir.x = Number(move.r) - Number(move.l); dir.normalize(); 
+                
+                // Basılan tuşlara göre lokal yön hesabı
+                dir.z = Number(move.f) - Number(move.b); 
+                dir.x = Number(move.r) - Number(move.l); 
+                dir.normalize(); 
                 
                 if (move.f || move.b) vel.z -= dir.z * 60 * delta;
                 if (move.l || move.r) vel.x -= dir.x * 60 * delta;
 
                 let p = controls.getObject().position;
                 
-                // Kaygan Çarpışma Sistemi
-                let nx = p.clone(); nx.x -= vel.x * delta;
+                // ==========================================
+                // 🔥 CS2 HAREKET FİXİ: KAMERAYA GÖRE YÜRÜME 🔥
+                // ==========================================
+                // Hız vektörünü kameranın Y (sağ-sol) açısına göre döndürüyoruz.
+                const velocity = new THREE.Vector3(vel.x * delta, 0, vel.z * delta);
+                velocity.applyEuler(new THREE.Euler(0, camera.rotation.y, 0, 'YXZ'));
+
+                // Çarpışma ve pozisyon güncellemesi (Artık Global koordinatlarda kameraya göre gidiyor)
+                let nx = p.clone(); nx.x += velocity.x;
                 if(!checkCollision(nx)) p.x = nx.x; else vel.x = 0;
                 
-                let nz = p.clone(); nz.z -= vel.z * delta;
+                let nz = p.clone(); nz.z += velocity.z;
                 if(!checkCollision(nz)) p.z = nz.z; else vel.z = 0;
 
-                // Zıplama
+                // Zıplama ve yerçekimi
                 p.y += vel.y * delta;
                 if (p.y < 1.6) { vel.y = 0; p.y = 1.6; canJump = true; }
 
-                // KAMERA FİXİ: Sadece kameranın Y eksenini hafifçe titretiyoruz
+                // Kamera Geri Tepme Efekti
                 if (shakeOffset > 0) {
                     controls.getObject().position.y += shakeOffset;
-                    shakeOffset -= delta * 0.5; // Titremeyi yavaşça azalt
+                    shakeOffset -= delta * 0.5; 
                     if(controls.getObject().position.y > 1.8) controls.getObject().position.y = 1.8;
                 }
 
